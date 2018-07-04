@@ -19,6 +19,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -41,19 +44,19 @@ import java.util.stream.Stream;
 })
 public class MetricCollector implements Interceptor {
     
-    public static final String MYBATIS_METRIC_TIME = MetricRegistry.name("mybatis", "time");
-    
     private static final Logger LOG = LoggerFactory.getLogger(MetricCollector.class);
     
     private static final String ANSI_PURPLE = "\u001B[35m";
     
     private static final String ANSI_RESET = "\u001B[0m";
     
-    private final Timer timer;
+    private final MetricRegistry metrics;
     
-    public MetricCollector(@Qualifier(MetricConfig.MYBATIS_METRIC_REGISTRY_BEAN) MetricRegistry metricRegistry) {
+    private final Map<String, Timer> timers = new HashMap<>();
+    
+    public MetricCollector(@Qualifier(MetricConfig.MYBATIS_METRIC_REGISTRY_BEAN) MetricRegistry metrics) {
         
-        timer = metricRegistry.timer(MYBATIS_METRIC_TIME);
+        this.metrics = metrics;
     }
     
     @Override
@@ -61,18 +64,26 @@ public class MetricCollector implements Interceptor {
         
         // there will always be a MappedStatement because it is present in all "@Signature"s
         //noinspection ConstantConditions
-        LOG.trace("Intercepting invocation for {}{}{}...",
-                  ANSI_PURPLE,
-                  Stream.of(invocation.getArgs())
-                        .filter(o -> o instanceof MappedStatement)
-                        .findAny()
-                        .map(o -> ((MappedStatement) o))
-                        .get()
-                        .getId().replaceFirst("com\\.samkruglov\\.", ""),
-                  ANSI_RESET
+        String repoMethodName = Stream.of(invocation.getArgs())
+                                      .filter(o -> o instanceof MappedStatement)
+                                      .findAny()
+                                      .map(o -> ((MappedStatement) o))
+                                      .get()
+                                      .getId().replaceFirst("com\\.samkruglov\\.", "");
+        LOG.trace("Intercepting invocation for {}{}{}...", ANSI_PURPLE, repoMethodName, ANSI_RESET
         );
-        
-        final Timer.Context context = timer.time();
+    
+        /* We could use metrics.getTimers((s, timer) -> s.equals(repoMethodName))
+         * but metrics.getTimers constructs new map every time we call it
+         */
+        Timer timer = Optional.ofNullable(timers.get(repoMethodName))
+                              .orElseGet(() -> {
+                                  Timer newTimer = metrics.timer(repoMethodName);
+                                  timers.put(repoMethodName, newTimer);
+                                  return newTimer;
+                              });
+    
+        Timer.Context context = timer.time();
         try {
             return invocation.proceed();
         } finally {
