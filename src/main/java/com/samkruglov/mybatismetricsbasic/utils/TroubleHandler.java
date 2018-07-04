@@ -22,8 +22,8 @@ public class TroubleHandler {
     
     @ExceptionHandler
     public ResponseEntity<String> handleStatusException(StatusException e) {
-        
-        log.debug(e.getMessage());
+    
+        log.error(e.getMessage());
         return ResponseEntity.status(e.getStatus()).header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_XML_VALUE)
                              .body(e.getMessage());
     }
