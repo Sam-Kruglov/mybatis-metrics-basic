@@ -5,5 +5,5 @@ import lombok.Value;
 @Value
 public class Item {
     
-    String id;
+    String id, desc;
 }

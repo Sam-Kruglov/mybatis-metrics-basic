@@ -25,9 +25,14 @@ public class ItemService {
                        .orElseThrow(() -> new StatusException("Item #" + id + " was not found.", HttpStatus.NOT_FOUND));
     }
     
-    public void save(Item item) {
+    public void insert(Item item) {
         
-        repo.save(item);
+        repo.insert(item);
+    }
+    
+    public void update(String id, Item item) {
+        
+        repo.update(id, item);
     }
     
     public void delete(String item) {
