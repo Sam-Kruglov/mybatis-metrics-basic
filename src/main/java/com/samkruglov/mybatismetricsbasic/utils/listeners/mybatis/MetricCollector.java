@@ -2,7 +2,6 @@ package com.samkruglov.mybatismetricsbasic.utils.listeners.mybatis;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.samkruglov.mybatismetricsbasic.configurations.MetricConfig;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -16,7 +15,6 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -54,7 +52,7 @@ public class MetricCollector implements Interceptor {
     
     private final Map<String, Timer> timers = new HashMap<>();
     
-    public MetricCollector(@Qualifier(MetricConfig.MYBATIS_METRIC_REGISTRY_BEAN) MetricRegistry metrics) {
+    public MetricCollector(MetricRegistry metrics) {
         
         this.metrics = metrics;
     }

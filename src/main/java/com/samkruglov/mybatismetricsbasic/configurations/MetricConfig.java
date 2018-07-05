@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.jmx.JmxReporter;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,13 +13,12 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class MetricConfig {
     
-    public static final String MYBATIS_METRIC_REGISTRY_BEAN = "mybatisMetricRegistry";
-    
     public static final String MYBATIS_JMX_REPORTER_BEAN = "mybatisJmxReporter";
     
     public static final String MYBATIS_SLF4J_REPORTER_BEAN = "mybatisSlf4jReporter";
     
-    @Bean(MYBATIS_METRIC_REGISTRY_BEAN)
+    @Bean
+    @ConditionalOnMissingBean
     public MetricRegistry mybatisMetricRegistry() {
         
         return new MetricRegistry();
@@ -34,7 +33,7 @@ public class MetricConfig {
      * and bonkers. For development purposes and browsing, though, it can be very useful.
      */
     @Bean(MYBATIS_JMX_REPORTER_BEAN)
-    public JmxReporter mybatisJmxReporter(@Qualifier(MYBATIS_METRIC_REGISTRY_BEAN) MetricRegistry registry) {
+    public JmxReporter mybatisJmxReporter(MetricRegistry registry) {
     
         JmxReporter reporter = JmxReporter.forRegistry(registry).build();
         reporter.start();
@@ -46,7 +45,7 @@ public class MetricConfig {
      * Once the reporter is started, all of the metrics in the registry will be logged once a minute (at the same time).
      */
     @Bean(MYBATIS_SLF4J_REPORTER_BEAN)
-    public Slf4jReporter mybatisSlf4jReporter(@Qualifier(MYBATIS_METRIC_REGISTRY_BEAN) MetricRegistry registry) {
+    public Slf4jReporter mybatisSlf4jReporter(MetricRegistry registry) {
         
         final Slf4jReporter reporter =
                 Slf4jReporter.forRegistry(registry)
