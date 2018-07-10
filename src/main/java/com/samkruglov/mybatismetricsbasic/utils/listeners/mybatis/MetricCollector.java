@@ -17,9 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -50,8 +48,6 @@ public class MetricCollector implements Interceptor {
     
     private final MetricRegistry metrics;
     
-    private final Map<String, Timer> timers = new HashMap<>();
-    
     public MetricCollector(MetricRegistry metrics) {
         
         this.metrics = metrics;
@@ -60,28 +56,21 @@ public class MetricCollector implements Interceptor {
     @Override
     public Object intercept(final Invocation invocation) throws Throwable {
         
-        // there will always be a MappedStatement because it is present in all "@Signature"s
-        //noinspection ConstantConditions
         String repoMethodName = Stream.of(invocation.getArgs())
                                       .filter(o -> o instanceof MappedStatement)
                                       .findAny()
                                       .map(o -> ((MappedStatement) o))
-                                      .get()
-                                      .getId().replaceFirst("com\\.samkruglov\\.", "");
-        LOG.trace("Intercepting invocation for {}{}{}...", ANSI_PURPLE, repoMethodName, ANSI_RESET
-        );
+                                      .map(MappedStatement::getId)
+                                      .map(s -> s.replaceFirst("com\\.samkruglov\\.", ""))
+                                      .orElse(null);
     
-        /* We could use metrics.getTimers((s, timer) -> s.equals(repoMethodName))
-         * but metrics.getTimers constructs new map every time we call it
-         */
-        Timer timer = Optional.ofNullable(timers.get(repoMethodName))
-                              .orElseGet(() -> {
-                                  Timer newTimer = metrics.timer(repoMethodName);
-                                  timers.put(repoMethodName, newTimer);
-                                  return newTimer;
-                              });
+        // as long as a MappedStatement is present in all "@Signature"s this is not null
+        if (Objects.isNull(repoMethodName)) {
+            return invocation.proceed();
+        }
+        LOG.trace("Intercepting invocation for {}{}{}...", ANSI_PURPLE, repoMethodName, ANSI_RESET);
     
-        Timer.Context context = timer.time();
+        Timer.Context context = metrics.timer(repoMethodName).time();
         try {
             return invocation.proceed();
         } finally {
@@ -103,6 +92,6 @@ public class MetricCollector implements Interceptor {
     
     @Override
     public void setProperties(final Properties properties) {
-        
+    
     }
 }
