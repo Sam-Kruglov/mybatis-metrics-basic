@@ -70,11 +70,8 @@ public class MetricCollector implements Interceptor {
         }
         LOG.trace("Intercepting invocation for {}{}{}...", ANSI_PURPLE, repoMethodName, ANSI_RESET);
     
-        Timer.Context context = metrics.timer(repoMethodName).time();
-        try {
+        try (Timer.Context context = metrics.timer(repoMethodName).time()) {
             return invocation.proceed();
-        } finally {
-            context.stop();
         }
     }
     
